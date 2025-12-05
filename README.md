@@ -1,4 +1,4 @@
-# TF-IDF Algorithm from Scratch
+# TF-IDF Algorithm
 
 A Python implementation of the Term Frequency-Inverse Document Frequency (TF-IDF) algorithm.
 
