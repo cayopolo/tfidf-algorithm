@@ -4,11 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "numpy>=2.3.5",
-    "ruff>=0.14.8",
-]
+dependencies = ["ruff>=0.14.8"]
 
+[dependency-groups]
+dev = ["pytest>=9.0.1"]
 
 [tool.ruff]
 line-length = 140
@@ -54,3 +53,11 @@ split-on-trailing-comma = false
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test"]
+python_functions = ["test_"]
