@@ -1,4 +1,4 @@
-from tfidf import compute_tfidf
+from tfidf import compute_tfidf, tokenise_document
 
 corpus = [
     """Once upon a time, in a faraway land, there was a brave knight named Sir Lancelot. He was known for his
@@ -35,11 +35,38 @@ gingerbread man. Together, they defeated the evil Lord Farquaad and lived happil
 
 
 def main() -> None:
-    """Example usage of tfidf"""
-    term = "knights"
-    document = "This is a document with a lot of knights knights knights knights knights knights knights knights knights knights knights"
-    tdidf = compute_tfidf(term, document, corpus)
-    print(f"{term} has a TD-IDF score of {tdidf}")
+    """Demonstration of TF-IDF analysis on fairy tale corpus"""
+    print("Preprocessing corpus...")
+    tokenised_corpus = [tokenise_document(doc) for doc in corpus]
+
+    # Analyse each document to find highest and lowest TF-IDF scoring words
+    print("=" * 80)
+    print("Top 5 Highest and Lowest TF-IDF Scoring Words Per Story")
+    print("=" * 80)
+
+    story_names = ["Sir Lancelot", "Jack & the Beanstalk", "Snow White", "Harry Potter", "Shrek"]
+    for story_name, tokenised_doc in zip(story_names, tokenised_corpus, strict=False):
+        print(f"\n{story_name}")
+        print("-" * 80)
+
+        unique_words = set(tokenised_doc)
+
+        # Calculate TF-IDF for each unique word
+        word_scores = []
+        for word in unique_words:
+            score = compute_tfidf(word, tokenised_doc, tokenised_corpus)
+            word_scores.append((word, score))
+
+        # Sort by score
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+
+        print("\nHighest TF-IDF scores (most distinctive to this story):")
+        for word, score in word_scores[:5]:
+            print(f"  {word:20s} {score:.4f}")
+
+        print("\nLowest TF-IDF scores (common across corpus):")
+        for word, score in word_scores[-5:]:
+            print(f"  {word:20s} {score:.4f}")
 
 
 if __name__ == "__main__":
