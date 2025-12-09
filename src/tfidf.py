@@ -77,7 +77,7 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
 
     match weighting_scheme:
         case WeightingSchemes.BINARY:
-            return 1.0 if term in tokenised_document else 0.0
+            return 1.0 if raw_count > 0 else 0.0
         case WeightingSchemes.RAW_COUNT:
             return float(raw_count)
         case WeightingSchemes.TERM_FREQUENCY:
