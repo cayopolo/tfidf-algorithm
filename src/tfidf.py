@@ -6,8 +6,14 @@ with support for multiple term frequency weighting schemes.
 """
 # Assumptions made:
 #   - Different case should not be a different word (i.e. HeLLo = hello = HELLO)
+#   - Whitespace is the token delimiter (not sophisticated sentence/word boundary detection)
+#   - Punctuation (except apostrophes) is removed during tokenization (see regex)
+#   - Apostrophes within words are preserved (contractions), but leading/trailing apostrophes are stripped (quotes)
+#   - Numbers and alphanumeric sequences are treated as valid tokens (see regex)
+#   - Empty documents are valid and return 0.0 for term frequency
+#   - IDF uses smoothing: log((1 + N) / (1 + n_t)) to avoid division by zero
+
 #   - TODO: WHICH CHARACTERS SHOULD BE SUPPORTED? Emojis? what encoding?
-#   - TODO: Handling of aprostrophes as part of a word vs speech marks (i.e. couldn't vs 'could not')
 
 import math
 import re
@@ -27,12 +33,17 @@ PUNCTUATION_REGEX = r"[^\w\s']"
 
 def tokenise_document(document: str) -> list[str]:
     """
-    Tokenises a document by removing punctuation and splitting by whitespace (preserving apostrophes).
+    Tokenises a document with smart apostrophe handling.
+
+    Preserves apostrophes within words (contractions like "don't") but removes
+    surrounding quotes/apostrophes used for quotation (like 'hello').
 
     The tokenisation process:
-    1. Removes all punctuation except apostrophes (to preserve contractions like "don't")
+    1. Removes all punctuation except apostrophes (to preserve contractions)
     2. Converts all text to lowercase for case-insensitive matching
     3. Splits on whitespace to create individual tokens
+    4. Strips leading/trailing apostrophes from each token (removes quote marks)
+    5. Filters out any empty tokens
 
     Args:
         document: The text document to tokenise.
@@ -43,9 +54,13 @@ def tokenise_document(document: str) -> list[str]:
     Example:
         >>> tokenise_document("Hello, World! It's a test.")
         ['hello', 'world', "it's", 'a', 'test']
+        >>> tokenise_document("I couldn't say 'hello' to them")
+        ['i', "couldn't", 'say', 'hello', 'to', 'them']
     """
     clean_doc = re.sub(PUNCTUATION_REGEX, "", document).lower()
-    return clean_doc.split()
+    tokens = clean_doc.split()
+    cleaned_tokens = [token.strip("'") for token in tokens]
+    return [token for token in cleaned_tokens if token]
 
 
 def compute_term_frequency(term: str, tokenised_document: list[str], weighting_scheme: WeightingSchemes) -> float:
@@ -100,8 +115,7 @@ def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[st
     Formula: `log((1 + N) / (1 + n_t))`
              where N = total documents, n_t = documents containing term
 
-    The +1 smoothing prevents division by zero and reduces the impact of terms
-    that appear in all documents.
+    The +1 smoothing prevents division by zero
 
     Args:
         term: The term to compute IDF for (case-insensitive).
@@ -115,7 +129,6 @@ def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[st
         >>> compute_inverse_document_frequency('cat', corpus)
         0.28768207245178085  # appears in 2/3 documents
     """
-    # TODO: Decide whether to adjust numerator and denominator to avoid div by 0 errors
     term = term.lower()
     num_docs_with_term = 0
     for tokenised_document in tokenised_corpus:

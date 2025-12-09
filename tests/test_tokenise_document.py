@@ -60,20 +60,22 @@ class TestPunctuation:
         [
             ("don't can't won't shouldn't", ["don't", "can't", "won't", "shouldn't"]),
             ("John's book Mary's pen", ["john's", "book", "mary's", "pen"]),
-            ("'90s it's", ["'90s", "it's"]),
-            ("'hello' 'world'", ["'hello'", "'world'"]),
+            ("'90s it's", ["90s", "it's"]),
             ('he said "it\'s fine"', ["he", "said", "it's", "fine"]),
         ],
     )
     def test_apostrophes_preserved(self, input_str: str, expected: list[str]) -> None:
-        """Test that apostrophes are preserved in contractions, possessives, and quotes."""
+        """Test that apostrophes are preserved in contractions and possessives, but quotes are stripped."""
         assert tokenise_document(input_str) == expected
 
     def test_quotes_removed(self) -> None:
-        """Test removal of double quotes but preservation of single quotes (apostrophes)."""
-        # TODO: How to remove quotes but keep apostrophes?
+        """Test removal of quotes (both single and double) while preserving apostrophes in contractions."""
         result = tokenise_document("\"hello\" 'world'")
         assert result == ["hello", "world"]
+
+        # Contractions still work
+        result = tokenise_document("don't use 'quotes' here")
+        assert result == ["don't", "use", "quotes", "here"]
 
 
 class TestNumbers:
@@ -110,7 +112,7 @@ class TestEdgeCases:
             ("  hello world  ", ["hello", "world"]),
             ("hello, world! how\tare\nyou?", ["hello", "world", "how", "are", "you"]),
             ("hello@world #tag $money", ["helloworld", "tag", "money"]),
-            ("' '  '", ["'", "'", "'"]),
+            ("' '  '", []),
         ],
     )
     def test_edge_cases(self, input_str: str, expected: list[str]) -> None:
