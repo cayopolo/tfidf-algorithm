@@ -84,6 +84,10 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
             return raw_count / len(tokenised_document)
         case WeightingSchemes.LOG_NORMALISATION:
             return math.log(1 + raw_count)
+        case _:
+            raise ValueError(
+                f"Unknown weighting scheme: {weighting_scheme}. Valid options: {', '.join(ws.value for ws in WeightingSchemes)}"
+            )
 
 
 def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[str]]) -> float:
