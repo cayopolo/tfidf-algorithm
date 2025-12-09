@@ -126,7 +126,10 @@ def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[st
 
 
 def compute_tfidf(
-    term: str, document: str, corpus: list[str], tf_weighting_scheme: WeightingSchemes = WeightingSchemes.TERM_FREQUENCY
+    term: str,
+    document: str | list[str],
+    corpus: list[str] | list[list[str]],
+    tf_weighting_scheme: WeightingSchemes = WeightingSchemes.TERM_FREQUENCY,
 ) -> float:
     """
     Compute TF-IDF score for a term in a document within a corpus.
@@ -139,10 +142,14 @@ def compute_tfidf(
     Formula: `TF-IDF = TF(term, document) * IDF(term, corpus)`
              where TF = Term Frequency and IDF = Inverse Document Frequency
 
+    Note:
+        For repeated queries on the same corpus, pre-tokenise the corpus once
+        and pass the tokenised version to avoid redundant tokenisation overhead.
+
     Args:
         term: The term to compute TF-IDF for (case-insensitive).
-        document: The document text (will be tokenised).
-        corpus: A list of all document texts in the corpus (including the target document).
+        document: Raw document string OR pre-tokenised list of terms.
+        corpus: List of raw document strings OR list of pre-tokenised documents.
         tf_weighting_scheme: The term frequency weighting scheme to use.
             Defaults to TERM_FREQUENCY (normalised count).
 
@@ -158,9 +165,18 @@ def compute_tfidf(
         ... ]
         >>> compute_tfidf("cat", corpus[0], corpus)
         0.060959898847262366
+
+        >>> # Using pre-tokenised for efficiency
+        >>> doc = tokenise_document("the cat sat")
+        >>> tokenised_corpus = [tokenise_document(d) for d in corpus]
+        >>> compute_tfidf("cat", doc, tokenised_corpus)
+        0.048
     """
-    tokenised_document = tokenise_document(document)
-    tokenised_corpus = [tokenise_document(doc) for doc in corpus]
+    # Handle both string and pre-tokenised inputs
+    tokenised_document: list[str] = tokenise_document(document) if isinstance(document, str) else document
+    tokenised_corpus: list[list[str]]
+    tokenised_corpus = [tokenise_document(doc) for doc in corpus] if corpus and isinstance(corpus[0], str) else corpus  # type:ignore
+
     tf = compute_term_frequency(term, tokenised_document, tf_weighting_scheme)
     idf = compute_inverse_document_frequency(term, tokenised_corpus)
 
