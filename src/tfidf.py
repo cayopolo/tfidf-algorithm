@@ -72,6 +72,9 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
         >>> compute_term_frequency('the', doc, WeightingSchemes.TERM_FREQUENCY)
         0.3333333333333333
     """
+    if not tokenised_document:
+        return 0.0
+
     term = term.lower()
     raw_count = tokenised_document.count(term)
 
@@ -89,7 +92,10 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
             counts: dict[str, int] = {}
             for token in tokenised_document:
                 counts[token] = counts.get(token, 0) + 1
-            maximum_count = max(counts.values())
+            maximum_count = max(counts.values()) if counts else 0
+
+            if maximum_count == 0:
+                return 0.0
 
             k = 0.5
             return k + ((1 - k) * raw_count) / maximum_count
