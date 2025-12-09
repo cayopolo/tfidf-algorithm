@@ -19,7 +19,6 @@ class WeightingSchemes(StrEnum):
     RAW_COUNT = auto()
     TERM_FREQUENCY = auto()
     LOG_NORMALISATION = auto()
-    DOUBLE_NORMALISATION_K = auto()
 
 
 # Removes punctuation but keeps apostrophes
@@ -61,8 +60,6 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
             - RAW_COUNT: Returns the raw count of term occurrences
             - TERM_FREQUENCY: count / doc_length
             - LOG_NORMALISATION: log(1 + count)
-            - DOUBLE_NORMALISATION_K: k + (1 - k) * (count / max_count)
-              where k=0.5, preventing bias towards longer documents
 
     Returns:
         The computed term frequency as a float.
@@ -87,18 +84,6 @@ def compute_term_frequency(term: str, tokenised_document: list[str], weighting_s
             return raw_count / len(tokenised_document)
         case WeightingSchemes.LOG_NORMALISATION:
             return math.log(1 + raw_count)
-        case WeightingSchemes.DOUBLE_NORMALISATION_K:
-            # Calculate maximum term frequency in the document
-            counts: dict[str, int] = {}
-            for token in tokenised_document:
-                counts[token] = counts.get(token, 0) + 1
-            maximum_count = max(counts.values()) if counts else 0
-
-            if maximum_count == 0:
-                return 0.0
-
-            k = 0.5
-            return k + ((1 - k) * raw_count) / maximum_count
 
 
 def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[str]]) -> float:

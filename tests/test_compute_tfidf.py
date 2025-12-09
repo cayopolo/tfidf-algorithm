@@ -211,11 +211,10 @@ class TestIDFEdgeCases:
         return ["The cat is on the mat.", "My dog and cat are the best.", "The locals are playing."]
 
     def test_empty_term(self, corpus: list[str]) -> None:
-        """Empty terms should return 0.0 (DOUBLE_NORMALISATION_K returns k=0.5 * IDF)."""
+        """Empty terms should return 0.0 for all schemes."""
         for scheme in WeightingSchemes:
             result = compute_tfidf("", corpus[0], corpus, scheme)
-            expected = 0.5 * math.log(4) if scheme == WeightingSchemes.DOUBLE_NORMALISATION_K else 0.0
-            assert pytest.approx(result, abs=1e-6) == expected, f"{scheme} failed on empty term"
+            assert pytest.approx(result, abs=1e-6) == 0.0, f"{scheme} failed on empty term"
 
     def test_empty_document(self, corpus: list[str]) -> None:
         """Empty documents should return 0.0 for all schemes."""
@@ -224,9 +223,8 @@ class TestIDFEdgeCases:
             assert result == 0.0, f"{scheme} failed on empty document"
 
     def test_nonexistent_term_returns_zero(self) -> None:
-        """Non-existent terms should return 0.0 (DOUBLE_NORMALISATION_K returns k=0.5)."""
+        """Non-existent terms should return 0.0 for all schemes."""
         doc = ["the", "cat", "sat", "on", "the", "mat"]
         for scheme in WeightingSchemes:
             result = compute_term_frequency("nonexistent", doc, scheme)
-            expected = 0.5 if scheme == WeightingSchemes.DOUBLE_NORMALISATION_K else 0.0
-            assert result == expected, f"{scheme} should return {expected} for missing term"
+            assert result == 0.0, f"{scheme} should return 0.0 for missing term"
