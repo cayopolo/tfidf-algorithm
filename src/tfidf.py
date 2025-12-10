@@ -11,9 +11,8 @@ with support for multiple term frequency weighting schemes.
 #   - Apostrophes within words are preserved (contractions), but leading/trailing apostrophes are stripped (quotes)
 #   - Numbers and alphanumeric sequences are treated as valid tokens (see regex)
 #   - Empty documents are valid and return 0.0 for term frequency
-#   - IDF uses smoothing: log((1 + N) / (1 + n_t)) to avoid division by zero
-
-#   - TODO: WHICH CHARACTERS SHOULD BE SUPPORTED? Emojis? what encoding?
+#   - IDF avoids division by 0 by an early return. ALternatively use smoothing log((1 + N) / (1 + n_t)) to avoid division by zero
+#   - Natural log (ln) should be used for IDF calculation
 
 import math
 import re
@@ -112,10 +111,10 @@ def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[st
     IDF measures how rare or common a term is across all documents. Terms that appear
     in many documents have lower IDF scores, while rare terms have higher scores.
 
-    Formula: `log((1 + N) / (1 + n_t))`
+    Formula: `log(N / n_t)`
              where N = total documents, n_t = documents containing term
 
-    The +1 smoothing prevents division by zero
+    Note: Returns 0.0 for terms not in corpus (avoids division by zero).
 
     Args:
         term: The term to compute IDF for (case-insensitive).
@@ -130,12 +129,12 @@ def compute_inverse_document_frequency(term: str, tokenised_corpus: list[list[st
         0.28768207245178085  # appears in 2/3 documents
     """
     term = term.lower()
-    num_docs_with_term = 0
-    for tokenised_document in tokenised_corpus:
-        if term in tokenised_document:
-            num_docs_with_term += 1
+    num_docs_with_term = sum(1 for doc in tokenised_corpus if term in doc)
 
-    return math.log((1 + len(tokenised_corpus)) / (1 + num_docs_with_term))
+    if num_docs_with_term == 0:
+        return 0.0
+
+    return math.log(len(tokenised_corpus) / num_docs_with_term)
 
 
 def compute_tfidf(

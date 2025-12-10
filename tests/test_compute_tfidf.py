@@ -80,15 +80,15 @@ class TestTFIDFBasicExample:
     def test_inverse_document_frequency_the(self, tokenised_corpus: list[list[str]]) -> None:
         """Test IDF('the') = log(3/3) = log(1) = 0"""
         idf = compute_inverse_document_frequency("the", tokenised_corpus)
-        # Since "the" appears in all 3 documents: log((1+3)/(1+3)) = log(1) = 0
+        # Since "the" appears in all 3 documents: log(3/3) = log(1) = 0
         expected = math.log(1)
         assert pytest.approx(idf, abs=0.01) == expected
 
     def test_inverse_document_frequency_cat(self, tokenised_corpus: list[list[str]]) -> None:
-        """Test IDF('cat') = log(3/2) = 0.18"""
+        """Test IDF('cat') = log(3/2) = 0.405"""
         idf = compute_inverse_document_frequency("cat", tokenised_corpus)
-        # "cat" appears in 2 out of 3 documents: log((1+3)/(1+2)) = log(4/3)
-        expected = math.log(4 / 3)
+        # "cat" appears in 2 out of 3 documents: log(3/2)
+        expected = math.log(3 / 2)
         assert pytest.approx(idf, rel=1e-2) == expected
 
 
@@ -119,17 +119,17 @@ class TestTFIDFScoreCalculation:
         assert pytest.approx(score, abs=0.01) == 0
 
     def test_tfidf_cat_in_d1(self, corpus: list[str]) -> None:
-        """Test TF-IDF('cat', D1) = 0.17 * 0.29 = 0.0493"""
+        """Test TF-IDF('cat', D1) = 0.167 * 0.405 = 0.0676"""
         score = compute_tfidf("cat", corpus[0], corpus, WeightingSchemes.TERM_FREQUENCY)
-        # TF = 1/6 = 0.167, IDF = log(4/3) = 0.288, so TF-IDF ≈ 0.048
-        expected = (1 / 6) * math.log(4 / 3)
+        # TF = 1/6 = 0.167, IDF = log(3/2) = 0.405, so TF-IDF ≈ 0.0676
+        expected = (1 / 6) * math.log(3 / 2)
         assert pytest.approx(score, rel=1e-2) == expected
 
     def test_tfidf_cat_in_d2(self, corpus: list[str]) -> None:
-        """Test TF-IDF('cat', D2) = 0.14 * 0.29 = 0.0406"""
+        """Test TF-IDF('cat', D2) = 0.143 * 0.405 = 0.0579"""
         score = compute_tfidf("cat", corpus[1], corpus, WeightingSchemes.TERM_FREQUENCY)
-        # TF = 1/7 = 0.143, IDF = log(4/3) = 0.288, so TF-IDF ≈ 0.041
-        expected = (1 / 7) * math.log(4 / 3)
+        # TF = 1/7 = 0.143, IDF = log(3/2) = 0.405, so TF-IDF ≈ 0.0579
+        expected = (1 / 7) * math.log(3 / 2)
         assert pytest.approx(score, rel=1e-2) == expected
 
     def test_tfidf_cat_in_d3(self, corpus: list[str]) -> None:
