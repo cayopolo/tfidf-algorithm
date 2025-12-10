@@ -19,16 +19,6 @@ from src.tfidf import WeightingSchemes, compute_inverse_document_frequency, comp
 class TestTFIDFBasicExample:
     """Test TF-IDF calculation using the basic example."""
 
-    @pytest.fixture
-    def corpus(self) -> list[str]:
-        """The corpus from the example."""
-        return ["The cat is on the mat.", "My dog and cat are the best.", "The locals are playing."]
-
-    @pytest.fixture
-    def tokenised_corpus(self, corpus: list[str]) -> list[list[str]]:
-        """Tokenised version of the corpus."""
-        return [tokenise_document(doc) for doc in corpus]
-
     def test_term_frequency_the_in_d1(self, corpus: list[str]) -> None:
         """Test TF('the', D1) = 2/6 = 0.33"""
         document = corpus[0]
@@ -92,13 +82,25 @@ class TestTFIDFBasicExample:
         assert pytest.approx(idf, rel=1e-2) == expected
 
 
+class TestWeightingSchemes:
+    def test_binary_scheme(self) -> None:
+        doc = ["cat", "cat", "dog"]
+        assert compute_term_frequency("cat", doc, WeightingSchemes.BINARY) == 1.0
+        assert compute_term_frequency("dog", doc, WeightingSchemes.BINARY) == 1.0
+        assert compute_term_frequency("bird", doc, WeightingSchemes.BINARY) == 0.0
+
+    def test_raw_count_scheme(self) -> None:
+        doc = ["cat", "cat", "dog"]
+        assert compute_term_frequency("cat", doc, WeightingSchemes.RAW_COUNT) == 2.0
+
+    def test_log_normalisation_scheme(self) -> None:
+        doc = ["cat", "cat", "dog"]
+        expected = math.log(1 + 2)  # log(3)
+        assert compute_term_frequency("cat", doc, WeightingSchemes.LOG_NORMALISATION) == expected
+
+
 class TestTFIDFScoreCalculation:
     """Test complete TF-IDF score calculations."""
-
-    @pytest.fixture
-    def corpus(self) -> list[str]:
-        """The corpus from the example."""
-        return ["The cat is on the mat.", "My dog and cat are the best.", "The locals are playing."]
 
     def test_tfidf_the_in_d1(self, corpus: list[str]) -> None:
         """Test TF-IDF('the', D1) = 0.33 * 0 = 0"""
@@ -147,11 +149,6 @@ class TestTFIDFScoreCalculation:
 
 class TestTFIDFRanking:
     """Test document ranking based on TF-IDF scores."""
-
-    @pytest.fixture
-    def corpus(self) -> list[str]:
-        """The corpus from the example."""
-        return ["The cat is on the mat.", "My dog and cat are the best.", "The locals are playing."]
 
     def test_cat_relevance_ranking(self, corpus: list[str]) -> None:
         """Test that 'cat' has higher relevance in D1 and D2 than D3."""
@@ -205,11 +202,6 @@ class TestTFIDFRanking:
 class TestIDFEdgeCases:
     """Test handling of edge cases like empty inputs."""
 
-    @pytest.fixture
-    def corpus(self) -> list[str]:
-        """The corpus from the example."""
-        return ["The cat is on the mat.", "My dog and cat are the best.", "The locals are playing."]
-
     def test_empty_term(self, corpus: list[str]) -> None:
         """Empty terms should return 0.0 for all schemes."""
         for scheme in WeightingSchemes:
@@ -228,3 +220,76 @@ class TestIDFEdgeCases:
         for scheme in WeightingSchemes:
             result = compute_term_frequency("nonexistent", doc, scheme)
             assert result == 0.0, f"{scheme} should return 0.0 for missing term"
+
+
+class TestFairytaleCorpus:
+    """Tests using an extended fairytale corpus for comprehensive TF-IDF validation."""
+
+    def test_unique_term_has_positive_tfidf(self, fairytale_corpus: list[str]) -> None:
+        """A term unique to one document should have positive TF-IDF in that document."""
+        # "lancelot" only appears in story 0 (Sir Lancelot)
+        score = compute_tfidf("lancelot", fairytale_corpus[0], fairytale_corpus)
+        assert score > 0, "Unique term 'lancelot' should have positive TF-IDF in its document"
+
+        # "beanstalk" only appears in story 1 (Jack & the Beanstalk)
+        score = compute_tfidf("beanstalk", fairytale_corpus[1], fairytale_corpus)
+        assert score > 0, "Unique term 'beanstalk' should have positive TF-IDF in its document"
+
+        # "hogwarts" only appears in story 3 (Harry Potter)
+        score = compute_tfidf("hogwarts", fairytale_corpus[3], fairytale_corpus)
+        assert score > 0, "Unique term 'hogwarts' should have positive TF-IDF in its document"
+
+    def test_unique_term_zero_in_other_documents(self, fairytale_corpus: list[str]) -> None:
+        """A term unique to one document should have zero TF-IDF in all other documents."""
+        # "lancelot" only appears in story 0
+        for i in range(1, len(fairytale_corpus)):
+            score = compute_tfidf("lancelot", fairytale_corpus[i], fairytale_corpus)
+            assert score == 0, f"'lancelot' should have zero TF-IDF in document {i}"
+
+        # "voldemort" only appears in story 3
+        for i in [0, 1, 2, 4]:
+            score = compute_tfidf("voldemort", fairytale_corpus[i], fairytale_corpus)
+            assert score == 0, f"'voldemort' should have zero TF-IDF in document {i}"
+
+    def test_common_term_has_low_tfidf(self, fairytale_corpus: list[str]) -> None:
+        """Terms appearing in all documents should have zero TF-IDF."""
+        common_terms = ["a", "and", "to"]
+        for term in common_terms:
+            for doc in fairytale_corpus:
+                score = compute_tfidf(term, doc, fairytale_corpus)
+                assert score == 0, f"Common term '{term}' should have zero TF-IDF"
+
+    def test_distinctive_terms_rank_documents_correctly(self, fairytale_corpus: list[str]) -> None:
+        """Documents containing a distinctive term should rank higher than those without."""
+        # Query for "wizard" - should rank Harry Potter (story 3) highest
+        scores = [compute_tfidf("wizard", doc, fairytale_corpus) for doc in fairytale_corpus]
+
+        # Harry Potter story should have the highest score for "wizard"
+        harry_potter_idx = 3
+        assert scores[harry_potter_idx] == max(scores), "Harry Potter should rank highest for 'wizard'"
+
+        # Stories without "wizard" should have zero score
+        for i, score in enumerate(scores):
+            if i != harry_potter_idx:
+                tokenised = tokenise_document(fairytale_corpus[i])
+                if "wizard" not in tokenised:
+                    assert score == 0, f"Document {i} without 'wizard' should have zero score"
+
+    def test_character_name_identifies_story(self, fairytale_corpus: list[str]) -> None:
+        """Character names should strongly identify their respective stories."""
+        character_story_pairs = [
+            ("lancelot", 0),  # Sir Lancelot story
+            ("jack", 1),  # Jack & the Beanstalk
+            ("dwarfs", 2),  # Snow White
+            ("harry", 3),  # Harry Potter
+            ("shrek", 4),  # Shrek
+        ]
+
+        for character, expected_story_idx in character_story_pairs:
+            scores = [compute_tfidf(character, doc, fairytale_corpus) for doc in fairytale_corpus]
+
+            # The expected story should have a positive score
+            assert scores[expected_story_idx] > 0, f"'{character}' should have positive TF-IDF in story {expected_story_idx}"
+
+            # The expected story should have the highest score (or tied for highest)
+            assert scores[expected_story_idx] == max(scores), f"'{character}' should rank story {expected_story_idx} highest"
